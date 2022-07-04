@@ -1,0 +1,6 @@
+#!/usr/bin/perl
+@var = (1,2,3);
+$first = shift @var;
+print $first;
+print @var ;
+

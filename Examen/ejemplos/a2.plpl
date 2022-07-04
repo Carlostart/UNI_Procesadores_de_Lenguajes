@@ -1,0 +1,5 @@
+#!/usr/bin/perl
+$a;
+$a = $a + 2;
+$b = 7;
+print $a * $b;

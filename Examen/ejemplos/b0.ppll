@@ -1,0 +1,4 @@
+#!/usr/bin/perl
+# esto es un comentario
+$num = 1;
+print $num; # esto es otro comentario

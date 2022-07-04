@@ -1,0 +1,5 @@
+#!/usr/bin/perl
+@lista = (-5..5);
+print @lista; 
+@lista2 = (8..2);
+print @lista2; 

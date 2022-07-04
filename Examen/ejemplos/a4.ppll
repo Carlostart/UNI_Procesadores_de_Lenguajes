@@ -1,0 +1,6 @@
+#!/usr/bin/perl
+$num = 1;
+$segundo = 3.7;
+print $segundo;
+print $num, 82; 
+print $num, 82 + $num, segundo; 

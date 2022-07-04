@@ -1,0 +1,8 @@
+echo *****COMPILA CUP*****
+cup *.cup
+echo *****COMPILA JFLEX*****
+jflex *.flex
+echo *****COMPILA JAVA*****
+javac -cp java-cup-11b.jar:. *.java
+echo *****EJECUTA JAVA*****
+java -cp java-cup-11b.jar:. PPerlL ejemplos/f4.ppll

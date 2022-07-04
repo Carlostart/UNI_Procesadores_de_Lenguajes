@@ -1,0 +1,3 @@
+#!/usr/bin/perl
+@lista = (0..9);
+print @lista; 

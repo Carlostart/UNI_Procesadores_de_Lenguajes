@@ -1,0 +1,4 @@
+#!/usr/bin/perl
+@num = (8, 7, 13, 25);
+print $#num;
+print $#num+1; 

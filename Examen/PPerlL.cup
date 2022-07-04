@@ -1,0 +1,245 @@
+import java_cup.runtime.*;
+import java.util.HashMap;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+
+parser code{:
+:}
+
+action code{:
+:}
+
+terminal COMENT, TRUE, FALSE, PRINT, PASTE, FOR, ASDOUBLE, COMA, NOT,
+		 PC, IGUAL, ASIGI, ASIGD, MAS, MENOS, POR, DIV, EXP, EQ, NE,
+		 MENOR, MAYOR, MENORIG, MAYORIG, AP, CP, AC, CC, AND, OR, PUSH,
+		 AL, CL, AA, DP, IN, INIT, ESCALAR, ARRAY, MAPA, EOL, IDX, POP,
+		 SHIFT, FOREACH, IF, ELSE, WHILE;
+terminal Double NUM;
+terminal String IDENT, IDENTE;
+
+non terminal Program program;
+non terminal StmtLst stmt_lst;
+non terminal Statement statement;
+non terminal Expr expr, condition, ec;
+non terminal String op;
+non terminal ArrayList<String> asigi, asigd, asig;
+non terminal ArrayList<Expr> lv;
+non terminal fin, finn;
+
+precedence left COMA;
+precedence left EQ, NE, MENOR, MENORIG, MAYOR, MAYORIG;
+precedence left NOT;
+precedence left AND, OR;
+precedence left IGUAL;
+precedence left NUM;
+precedence left DP;
+precedence left IDENT, IDENTE;
+precedence left TRUE, FALSE;
+precedence left MAS, MENOS;
+precedence left POR, DIV, EXP;
+precedence left IDX;
+precedence left AP, CP;
+precedence left AC, CC;
+
+start with program;
+
+program ::= 
+		  INIT finn stmt_lst:ls fin
+		  {: Program p = new Program(ls);
+			 p.exec();
+		  :}
+		;
+
+stmt_lst ::=
+		  statement:s
+		  	{: if(s!=null)	RESULT = new StmtLst(s);
+				else	    RESULT = new StmtLst(); :}
+		| stmt_lst:sl fin statement:s
+			{: if(s!=null)	sl.add(s);
+			   RESULT = sl; :}
+		;
+
+lv ::= 	  
+		  expr:e1 COMA expr:e2	
+			{: 
+				ArrayList<Expr> lv = new ArrayList<Expr>();
+				lv.add(e1); lv.add(e2); RESULT = lv;
+			:}
+		| lv:lv COMA expr:e {: lv.add(e); RESULT = lv; :}
+		;
+
+statement ::=
+		 ESCALAR IDENT:i IGUAL expr:e
+			{:  
+				HashMap<String, Expr> hm = new HashMap<String, Expr>();
+				hm.put("$"+i,e);
+				RESULT = new AssignStmt(hm);
+			:}
+		| ARRAY IDENT:i IGUAL expr:e
+			{:  
+				HashMap<String, Expr> hm = new HashMap<String, Expr>();
+				hm.put("@"+i,e);
+				RESULT = new AssignStmt(hm);
+			:}
+		| expr:e
+		| condition:c
+			{: RESULT = new PrintStmt(c); :}
+		| PRINT expr:e
+			{: RESULT = new PrintStmt(e); :}
+		| PRINT lv:lv
+			{: RESULT = new PrintStmt(new Arr(lv)); :}
+		| FOREACH IDENT:i expr:e finn AL finn stmt_lst:s finn CL
+			{: RESULT = new ForStmt(i, e, s); :}
+			/* ERRORES */
+		| expr:e op:o PC
+			{: RESULT = new StmtErr("Error: inesperado ';' in \"" + e.get() + o + ";\""); :}
+		| expr:e NUM:n op expr
+			{: RESULT = new StmtErr("Error: unexpected numeric constant in \"" + e.get() +
+									" " + n + "\""); :}
+		| PRINT AP expr:e PC CP
+			{: RESULT = new StmtErr("Error: inesperado ';' in \"print(" + e.get() +";\""); :}
+		| PRINT AP expr
+			{: RESULT = new StmtErr("Error: unexpected symbol in:"); :}
+		| IDENTE:i IGUAL expr
+			{: RESULT = new StmtErr("Error: unexpected input in \"" + i + "\""); :}
+		| asigi:ls op:o expr:e
+			{: RESULT = new StmtErr("Error: inesperado '" + o + "' in \" <-"
+									 + o + e.get() + "\""); :}
+		| PRINT AP CP
+			{: RESULT = new StmtErr("Error in print.default() :\n el argumento \"x\" está ausente, sin valor por omisión"); :}
+		;
+
+op ::=
+		   MAS		{: RESULT = " + "; :}
+		// |  MENOS	{: RESULT = " - "; :}
+		|  POR		{: RESULT = " * "; :}
+		|  DIV		{: RESULT = " / "; :}
+		|  EQ		{: RESULT = " == "; :}
+		|  NE		{: RESULT = " != "; :}
+		|  MENOR	{: RESULT = " < "; :}
+		|  MENORIG	{: RESULT = " <= "; :}
+		|  MAYOR	{: RESULT = " > "; :}
+		|  MAYORIG	{: RESULT = " >= "; :}
+		// |  ASIGI	{: RESULT = " <- "; :}
+		|  DP 		{: RESULT = " : "; :}
+;
+
+condition ::=
+		  expr:l EQ expr:r
+			{: RESULT = new EqCond(l,r); :}
+		| expr:l NE expr:r
+			{: RESULT = new NeqCond(l,r); :}
+		| expr:l MENOR expr:r
+			{: RESULT = new LtCond(l,r); :}
+		| expr:l MENORIG expr:r
+			{: RESULT = new LteCond(l,r); :}
+		| expr:l MAYOR expr:r
+			{: RESULT = new GtCond(l,r); :}
+		| expr:l MAYORIG expr:r
+			{: RESULT = new GteCond(l,r); :}
+		| ec:l AND AND ec:r
+			{: RESULT = new AndCond(l,r); :}
+		| ec:l OR OR ec:r
+			{: RESULT = new OrCond(l,r); :}
+		| NOT ec:c
+			{: RESULT = new NotCond(c); :}
+		| TRUE
+			{: RESULT = new Cond(true); :}
+		| FALSE
+			{: RESULT = new Cond(false); :}
+		| AP condition:c CP
+			{: RESULT = c; :}
+
+			// ERRORES
+		| condition:c op:o expr
+			{: RESULT = new ExprErr("Error: inesperado '"+o+"' in \""+c.get()+o+"\""); :}
+		;
+
+ec ::=
+	  condition:c {: RESULT = c; :}
+	| expr:e {: RESULT = e; :}
+	;
+
+expr ::=
+		  MAS expr:e
+			{: RESULT = e; :}
+		| MENOS expr:e
+			{: RESULT = new InvExpr(e); :}
+		| expr:e1 MAS expr:e2
+			{: RESULT = new PlusExpr(e1, e2); :}
+		| expr:e1 MENOS expr:e2
+			{: RESULT = new MinusExpr(e1, e2); :}
+		| expr:e1 POR expr:e2
+			{: RESULT = new MultExpr(e1, e2); :}
+		| expr:e1 DIV expr:e2
+			{: RESULT = new DivExpr(e1, e2); :}
+		| expr:e1 EXP expr:e2
+			{: RESULT = new ExpExpr(e1, e2); :}
+		| IDENT:i
+		  	{: RESULT = new ID(i); :}
+		| NUM:i
+			{: ArrayList<Double> r = new ArrayList<>(); r.add(i); RESULT = new Num(r); :}
+		| ASDOUBLE AP condition:e CP
+			{: RESULT = e; :}
+		| AP expr:e CP
+			{: RESULT = e; :}
+		| AP lv:l CP
+			{: RESULT = new Arr(l); :}
+		| expr:e1 DP expr:e2
+			{: ArrayList<Double> r = new ArrayList<>();
+			double n1 = e1.run(null).get(0);
+			double n2 = e2.run(null).get(0);
+			if(n1>n2)
+				RESULT= new ExprErr("error();");
+			else if(n1 % 1 == 0 && n2 % 1 == 0){
+				while(n1<=n2){
+					r.add(n1);
+					n1++;
+				}
+				RESULT = new Num(r);
+			} else
+				RESULT = new ExprErr("error();");
+			 :}
+		| ARRAY IDENT:i AC expr:e CC
+			{: RESULT = new IDArr("@"+i, e); :}
+		| ARRAY IDENT:i AC lv:l CC
+			{: RESULT = new IDArr("@"+i, new Arr(l)); :}
+		| ESCALAR IDENT:i
+			{: RESULT = new ID("$"+i); :}
+		| ARRAY IDENT:i
+			{: RESULT = new ID("@"+i); :}
+		| IDX IDENT:i
+			{: RESULT = new Len(new ID("@"+i)); :}
+		| PUSH expr:e1 COMA expr:e2
+			{: RESULT = new Push(e1,e2); :}
+		| POP expr:e
+			{: RESULT = new Pop(e); :}
+		| SHIFT expr:e
+			{: RESULT = new Shift(e); :}
+		| AP expr:e1 DP expr:e2 CP
+		
+		// ERRORES
+		// | expr:e1 op:o expr:e2  IGUAL expr:e3
+		// 	{: RESULT = new ExprErr("Error in " + e1.get() + o + e2.get() + " = " + e3.get() +
+		// 							" : no se pudo encontrar la función \"-<-\""); :}
+		| expr:e op:o1 op:o2 expr
+			{: RESULT = new ExprErr("Error: inesperado '"+ o2 +"' in " + e.get() + 
+									o1 + o2 + "\""); :}
+		| expr:e MENOS op:o2 expr
+			{: RESULT = new ExprErr("Error: inesperado '"+ o2 +"' in " + e.get() + 
+									"-" + o2 + "\""); :}
+		;
+
+fin ::= 
+		  PC
+		| EOL
+		| COMENT
+		| fin PC
+		| fin EOL
+		| fin COMENT
+		;
+
+finn ::=
+		  fin
+		|
+		;

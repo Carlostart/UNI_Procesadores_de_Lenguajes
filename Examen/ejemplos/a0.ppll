@@ -1,0 +1,3 @@
+#!/usr/bin/perl
+$var10 = 10;
+print $var10;

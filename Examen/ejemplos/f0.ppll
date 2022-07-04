@@ -1,0 +1,6 @@
+#!/usr/bin/perl
+if (3 < 8 or 4==7) {
+  print 1;
+} else {
+  print 0;
+}
