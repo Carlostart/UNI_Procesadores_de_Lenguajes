@@ -1,0 +1,9 @@
+i = 0;
+L0:
+if(i<5) goto L2;
+goto L3;
+L1:
+$t0 = i + 1;
+i = $t0;
+goto L0;
+L2:

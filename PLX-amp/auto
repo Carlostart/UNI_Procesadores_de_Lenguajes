@@ -1,0 +1,11 @@
+echo *****COMPILA CUP*****
+cup PLXC.cup
+echo *****COMPILA FLEX*****
+jflex PLXC.flex
+echo *****COMPILA JAVA*****
+javac -cp java-cup-11b.jar:. *.java
+echo *****EJECUTA JAVA*****
+java -cp java-cup-11b.jar:. PLXC plc-test/charmat8.plx prog.ctd
+sleep 0.1
+echo ****SALIDA FICHERO****
+cat prog.ctd
