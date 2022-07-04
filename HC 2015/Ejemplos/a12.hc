@@ -1,0 +1,4 @@
+[A1]:1
+[B1]:10
+[C1]=PROMEDIO(A1;A2+B1;A3;7-4)
+PRINT(C1)

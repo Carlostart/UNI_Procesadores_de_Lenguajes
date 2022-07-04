@@ -1,0 +1,123 @@
+import java_cup.runtime.*;
+import java.util.Hashtable;
+import java.util.ArrayList;
+
+parser code{:
+:}
+
+action code{:
+  Hashtable<String, String> ID = new Hashtable<>();
+  public String leer(Hashtable<String, String> ht, String id){
+    String num = ht.get(id);
+    if(num==null) num = "0";
+    return num;
+  }
+:}
+
+terminal String IDENT;
+terminal Integer INT;
+terminal AC, CC, DP, EQ, MAS, MENOS, POR, DIV, PRINT, AP, CP, PROM,
+         PC, EXP, SUM, V, F, MEN, MAY, Y, O, NO;
+
+non terminal String ls, s, e, ei, vf, comp, ec;
+non terminal Integer i, op, in;
+non terminal ArrayList<Integer> ln;
+non terminal ArrayList<Boolean> lb;
+
+precedence left INT;
+precedence left MAS, MENOS, MEN, MAY;
+precedence left POR, DIV, EXP;
+precedence left EQ;
+precedence left AP, CP;
+
+start with ls;
+
+ls ::= e ls
+  | s ls
+  |
+;
+s ::= AC IDENT:i1 CC DP i:n       {: ID.put(i1, n.toString()); :}
+  | PRINT AP IDENT:i CP           {: IHC.out.println(leer(ID, i)); :}
+  | AC IDENT:i1 CC EQ op:n        {: ID.put(i1, n.toString()); :}
+  | AC IDENT:i1 CC DP vf:b        {: ID.put(i1, b); :}
+  | AC IDENT:i1 CC EQ comp:c      {: ID.put(i1, c); :}
+;
+e ::= AC IDENT CC EQ i            {: IHC.out.println("ERROR: ASIGNACIóN"); :}
+  | AC ei CC DP i                 {: IHC.out.println("ERROR: REFERENCIA INCORRECTA"); :}
+  | AC IDENT CC DP op             {: IHC.out.println("ERROR: VALOR CONSTANTE"); :}
+  | PRINT AP ei CP                {: IHC.out.println("ERROR: REFERENCIA"); :}
+  | AC IDENT CC EQ vf             {: IHC.out.println("ERROR: ASIGNACIóN"); :}
+  | AC ei CC DP vf                {: IHC.out.println("ERROR: REFERENCIA"); :}
+  | AC IDENT:i CC EQ ec:c         {: ID.put(i, c); :}
+;
+ei ::= INT
+ | IDENT INT
+ |
+;
+i ::= INT:n                       {: RESULT = n; :}
+ | MENOS INT:n                    {: RESULT = -n; :}
+;
+op ::= in:n1 MAS in:n2            {: RESULT = n1+n2; :}
+  | in:n1 MENOS in:n2             {: RESULT = n1-n2; :}
+  | in:n1 POR in:n2               {: RESULT = n1*n2; :}
+  | in:n1 DIV in:n2               {: RESULT = n1/n2; :}
+  | in:n1 EXP in:n2               {: RESULT = (int) Math.pow(n1, n2); :}
+  | SUM AP ln:l CP                {: int r = 0; for(int n:l)  r += n; RESULT = r; :}
+  | PROM AP ln:l CP               {: int r = 0; for(int n:l)  r += n; RESULT = r/l.size(); :}
+  | op:n1 MAS in:n2               {: RESULT = n1+n2; :}
+  | op:n1 MENOS in:n2             {: RESULT = n1-n2; :}
+  | op:n1 POR in:n2               {: RESULT = n1*n2; :}
+  | op:n1 DIV in:n2               {: RESULT = n1/n2; :}
+  | op:n1 EXP in:n2               {: RESULT = (int) Math.pow(n1, n2); :}
+;
+in ::= i:n                        {: RESULT = n; :}
+ | IDENT:n                        {:
+                                      try{
+                                        RESULT = Integer.parseInt(leer(ID,n));
+                                      } catch(Exception e){
+
+                                      }
+                                  :}
+ | AP op:n CP                     {: RESULT = n; :}
+;
+ln ::= in:n1 PC ln:l              {: ArrayList<Integer> r = new ArrayList<>();  r.add(n1);  r.addAll(l); RESULT = r;  :}
+  | in:n1                         {: ArrayList<Integer> r = new ArrayList<>();  r.add(n1);  RESULT = r; :}
+  | op:n1 PC ln:l                 {: ArrayList<Integer> r = new ArrayList<>();  r.add(n1);  r.addAll(l); RESULT = r;  :}
+  | op:n1                         {: ArrayList<Integer> r = new ArrayList<>();  r.add(n1);  RESULT = r; :}
+;
+vf ::= V                          {: RESULT = "VERDADERO"; :}
+  | F                             {: RESULT = "FALSO"; :}
+;
+comp ::= in:n1 MEN in:n2          {: RESULT = n1 < n2 ? "VERDADERO" : "FALSO"; :}
+  | in:n1 MAY in:n2               {: RESULT = n1 > n2 ? "VERDADERO" : "FALSO"; :}
+  | in:n1 MEN EQ in:n2            {: RESULT = n1 <= n2 ? "VERDADERO" : "FALSO"; :}
+  | in:n1 MAY EQ in:n2            {: RESULT = n1 >= n2 ? "VERDADERO" : "FALSO"; :}
+  | in:n1 EQ in:n2                {: RESULT = n1 == n2 ? "VEDADERO" : "FALSO"; :}
+  | vf:n1 EQ vf:n2                {: RESULT = n1.equals(n2) ? "VEDADERO" : "FALSO"; :}
+  | IDENT:n1 EQ vf:n2             {: RESULT = leer(ID, n1).equals(n2) ? "VEDADERO" : "FALSO"; :}
+  | Y AP lb:l CP                  {: boolean r = true; for(boolean n:l)  r = r && n; RESULT = r ? "VERDADERO" : "FALSO"; :}
+  | O AP lb:l CP                  {: boolean r = false; for(boolean n:l)  r = r || n; RESULT = r ? "VERDADERO" : "FALSO"; :}
+  | NO AP vf:b CP                 {: RESULT = b.equals("VERDADERO") ? "FALSO" : "VERDADERO"; :}
+  | NO AP IDENT:b CP              {: RESULT = ID.get(b).equals("VERDADERO") ? "FALSO" : "VERDADERO"; :}
+;
+ec ::= comp MEN in                {: RESULT = "ERROR: COMPARADOR ES BINARIO"; :}
+  | comp MAY in                   {: RESULT = "ERROR: COMPARADOR ES BINARIO"; :}
+  | comp MEN EQ in                {: RESULT = "ERROR: COMPARADOR ES BINARIO"; :}
+  | comp MAY EQ in                {: RESULT = "ERROR: COMPARADOR ES BINARIO"; :}
+  | vf MEN in                     {: RESULT = "ERROR: NO CONCUERDAN TIPOS"; :}
+  | vf MAY in                     {: RESULT = "ERROR: NO CONCUERDAN TIPOS"; :}
+  | vf MEN EQ in                  {: RESULT = "ERROR: NO CONCUERDAN TIPOS"; :}
+  | vf MAY EQ in                  {: RESULT = "ERROR: NO CONCUERDAN TIPOS"; :}
+  | in MEN vf                     {: RESULT = "ERROR: COMPARADOR BOOLEANO INCORRECTO"; :}
+  | in MAY vf                     {: RESULT = "ERROR: COMPARADOR BOOLEANO INCORRECTO"; :}
+  | in MEN EQ vf                  {: RESULT = "ERROR: COMPARADOR BOOLEANO INCORRECTO"; :}
+  | in MAY EQ vf                  {: RESULT = "ERROR: COMPARADOR BOOLEANO INCORRECTO"; :}
+  | NO AP lb CP                   {: RESULT = "ERROR: DEMASIADOS ARGUMENTOS"; :}
+;
+lb ::= vf:n1 PC lb:l              {: ArrayList<Boolean> r = new ArrayList<>();  r.add(n1.equals("VERDADERO") ? true : false);  r.addAll(l); RESULT = r;  :}
+  | vf:n1                         {: ArrayList<Boolean> r = new ArrayList<>();  r.add(n1.equals("VERDADERO") ? true : false);  RESULT = r; :}
+  | IDENT:id                      {: ArrayList<Boolean> r = new ArrayList<>();  r.add(ID.get(id).equals("VERDADERO") ? true : false); RESULT = r;  :}
+  | IDENT:id PC lb:l              {: ArrayList<Boolean> r = new ArrayList<>();  r.add(ID.get(id).equals("VERDADERO") ? true : false);  r.addAll(l); RESULT = r;  :}
+  | comp:n1 PC lb:l               {: ArrayList<Boolean> r = new ArrayList<>();  r.add(n1.equals("VERDADERO") ? true : false);  r.addAll(l); RESULT = r;  :}
+  | comp:n1                       {: ArrayList<Boolean> r = new ArrayList<>();  r.add(n1.equals("VERDADERO") ? true : false);  RESULT = r; :}
+;
