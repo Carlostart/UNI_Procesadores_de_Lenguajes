@@ -1,0 +1,253 @@
+import java_cup.runtime.*;
+import java.util.ArrayList;
+
+action code{:
+  ArrayList<ArrayList<String>> bloques = new ArrayList<>();
+  int profundidad=0;
+:}
+
+parser code{:
+:}
+
+terminal MAS, MENOS, POR, DIV, AP, CP, AC, CC, PYC, ELSE,
+         PRINT, EQ, EQEQ, NOT, NOTEQ, MAYOR, MAYOREQ,
+         MENOR, MENOREQ, IF, WHILE, DO, MENOSU, INT;
+terminal Etiqueta FOR, AND, OR;
+terminal String IDENT, ENTERO;
+
+non terminal String s, Lista_de_sent, Sentencia, Expresion, Declaracion;
+non terminal Etiqueta Condicion, Else, If, While, Do, For;
+
+precedence left IF, ELSE, WHILE, FOR, PRINT, DO, AP, INT;
+precedence left IDENT, ENTERO;
+precedence left AND, OR;
+precedence left MAYOR, MENOR, MAYOREQ, MENOREQ, EQ, NOTEQ;
+precedence left MAS, MENOS;
+precedence left POR, DIV;
+precedence left AP, CP;
+precedence left AC, CC;
+precedence left MENOSU;
+
+start with s;
+s ::= {:bloques.add(new ArrayList<>());:} Lista_de_sent {::}
+  ;
+
+Lista_de_sent ::= Sentencia:s {::}
+  | Lista_de_sent Sentencia   {::}
+  ;
+
+Sentencia ::= Expresion:e PYC {:RESULT = e;:}
+  | If:i AP Condicion:c CP {:
+      Generator.salida(Generator.LABEL, null, null, c.v());
+    :}
+    Sentencia {:
+      i.setF(Generator.nuevaEtiqueta());
+      Generator.salida(Generator.GOTO, null, null, i.f());
+      Generator.salida(Generator.LABEL, null, null, c.f());
+    :}
+    Else {:
+      Generator.salida(Generator.LABEL, null, null, i.f());
+    :}
+  | While:w AP {:
+      w.setV(Generator.nuevaEtiqueta());
+      Generator.salida(Generator.LABEL, null, null, w.v());
+    :}
+    Condicion:c CP {:
+      Generator.salida(Generator.LABEL, null, null, c.v());
+    :}
+    Sentencia {:
+      Generator.salida(Generator.GOTO, null, null, w.v());
+      Generator.salida(Generator.LABEL, null, null, c.f());
+    :}
+  | Do:d {:
+      d.setV(Generator.nuevaEtiqueta());
+      Generator.salida(Generator.LABEL, null, null, d.v());
+    :}
+    Sentencia WHILE AP Condicion:c CP PYC {:
+      Generator.salida(Generator.LABEL, null, null, c.v());
+      Generator.salida(Generator.GOTO, null, null, d.v());
+      Generator.salida(Generator.LABEL, null, null, c.f());
+    :}
+  | For:f AP Expresion PYC {:
+      f.setV(Generator.nuevaEtiqueta());
+      f.setF(Generator.nuevaEtiqueta());
+      Generator.salida(Generator.LABEL, null, null, f.v());
+    :}
+    Condicion:c {:
+      Generator.salida(Generator.LABEL, null, null, f.f());
+    :}
+    PYC Expresion CP {:
+      Generator.salida(Generator.GOTO, null, null, f.v());
+      Generator.salida(Generator.LABEL, null, null, c.v());
+    :}
+    Sentencia {:
+      Generator.salida(Generator.GOTO, null, null, f.f());
+      Generator.salida(Generator.LABEL, null, null, c.f());
+    :}
+  | PRINT AP Expresion:e CP PYC {:
+      Generator.salida(Generator.PRINT, e, null, null);
+    :}
+  | INT Declaracion PYC
+  | AC {:
+    bloques.add(new ArrayList<>());
+    profundidad++;
+    :} Lista_de_sent CC {:
+        bloques.get(profundidad).clear();
+        profundidad--;
+      :}
+  ;
+
+Declaracion ::= IDENT:i Declaracion {:
+      if (bloques.get(profundidad).contains(i)){
+        throw new java.lang.Error("...\nerror:\n# variable ya declarada\n...");
+      } else{
+        bloques.get(profundidad).add(i);
+      }
+    :}
+  | IDENT:i EQ ENTERO:e Declaracion {:
+      if (bloques.get(profundidad).contains(i)){
+        throw new java.lang.Error("...\nerror:\n# variable ya declarada\n...");
+      } else{
+        bloques.get(profundidad).add(i);
+      }
+      Generator.salida(Generator.ASIG, i, e, null);
+    :}
+  |
+  ;
+
+If ::= IF {:
+    RESULT = new Etiqueta(null, null);
+  :}
+  ;
+
+Else ::= ELSE Sentencia {::}
+  |
+  ;
+
+While ::= WHILE {:
+    RESULT = new Etiqueta(null, null);
+  :}
+  ;
+
+Do ::= DO {:
+  RESULT = new Etiqueta(null, null);
+  :}
+  ;
+
+For ::= FOR {:
+  RESULT = new Etiqueta(null, null);
+  :}
+  ;
+
+Expresion ::= Expresion:e1 MAS Expresion:e2 {:
+      String t = Generator.nuevaTemp();
+      Generator.salida(Generator.MAS, e1, e2, t);
+      RESULT = t;
+    :}
+  | Expresion:e1 MENOS Expresion:e2 {:
+      String t = Generator.nuevaTemp();
+      Generator.salida(Generator.MENOS, e1, e2, t);
+      RESULT = t;
+    :}
+  | Expresion:e1 POR Expresion:e2 {:
+      String t = Generator.nuevaTemp();
+      Generator.salida(Generator.POR, e1, e2, t);
+      RESULT = t;
+    :}
+  | Expresion:e1 DIV Expresion:e2 {:
+      String t = Generator.nuevaTemp();
+      Generator.salida(Generator.DIV, e1, e2, t);
+      RESULT = t;
+    :}
+  | MENOS Expresion:e {:
+      String t = Generator.nuevaTemp();
+      Generator.salida(Generator.MENOS, "0", e, t);
+      RESULT = t;
+    :} %prec MENOSU
+  | AP Expresion:e CP      {:RESULT = e;:}
+  | IDENT:i EQ Expresion:e {:
+      Generator.salida(Generator.ASIG, i, e, null);  RESULT = i;
+    :}
+  | ENTERO:e               {:RESULT = e;:}
+  | IDENT:i                {:
+      ArrayList<String> aux = new ArrayList<>();
+      for(int u = 0; u<profundidad+1;u++) aux.addAll(bloques.get(u));
+      /* PLC.out.print(aux); */
+
+      if (!aux.contains(i)) {
+        throw new java.lang.Error("...\nerror:\n# variable no encontrada\n...");
+        /* PLC.out.println("...\nerror:\n# variable no encontrada\n..."); */
+      }
+      RESULT = i;
+    :}
+  ;
+
+Condicion ::= Expresion:e1 EQEQ Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e1 + "==" + e2 + ") ");
+      Generator.salida(Generator.GOTO, null, null, v);
+      Generator.salida(Generator.GOTO, null, null, f);
+      RESULT = new Etiqueta(v,f);
+    :}
+ | Expresion:e1 NOTEQ Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e1 + "==" + e2 + ") ");
+      Generator.salida(Generator.GOTO, null, null, f);
+      Generator.salida(Generator.GOTO, null, null, v);
+      RESULT = new Etiqueta(v,f);
+    :}
+  | Expresion:e1 MAYOREQ Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e1 + "<" + e2 + ") ");
+      Generator.salida(Generator.GOTO, null, null, f);
+      Generator.salida(Generator.GOTO, null, null, v);
+      RESULT = new Etiqueta(v,f);
+    :}
+  | Expresion:e1 MENOREQ Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e2 + "<" + e1 + ") ");
+      Generator.salida(Generator.GOTO, null, null, f);
+      Generator.salida(Generator.GOTO, null, null, v);
+      RESULT = new Etiqueta(v,f);
+    :}
+  | Expresion:e1 MAYOR Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e2 + "<" + e1 + ") ");
+      Generator.salida(Generator.GOTO, null, null, v);
+      Generator.salida(Generator.GOTO, null, null, f);
+      RESULT = new Etiqueta(v,f);
+    :}
+  | Expresion:e1 MENOR Expresion:e2 {:
+      String v = Generator.nuevaEtiqueta();
+      String f = Generator.nuevaEtiqueta();
+      PLXC.out.print("if(" + e1 + "<" + e2 + ") ");
+      Generator.salida(Generator.GOTO, null, null, v);
+      Generator.salida(Generator.GOTO, null, null, f);
+      RESULT = new Etiqueta(v,f);
+    :}
+  | NOT Condicion:c {:
+      RESULT = new Etiqueta(c.f(),c.v());
+    :}
+  | Condicion:c1 AND {:
+      Generator.salida(Generator.LABEL, null, null, c1.v());
+    :}
+    Condicion:c2 {:
+      Generator.salida(Generator.LABEL, null, null, c1.f());
+      Generator.salida(Generator.GOTO, null, null, c2.f());
+      RESULT = c2;
+    :}
+  | Condicion:c1 OR:o {:
+      Generator.salida(Generator.LABEL, null, null, c1.f());
+    :}
+    Condicion:c2 {:
+      Generator.salida(Generator.LABEL, null, null, c1.v());
+      Generator.salida(Generator.GOTO, null, null, c2.v());
+      RESULT = c2;
+    :}
+  | AP Condicion:c CP             {:RESULT = c;:}
+  ;
