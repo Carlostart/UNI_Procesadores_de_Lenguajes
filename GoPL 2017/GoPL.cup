@@ -1,0 +1,389 @@
+import java_cup.runtime.*;
+import java.util.HashMap;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+
+parser code{:
+:}
+
+action code{:
+  public static HashMap variables = new HashMap<String, SimpleEntry<Integer, String>>();
+  public static HashMap constantes = new HashMap<String, SimpleEntry<Integer, String>>();
+  Boolean err = false;
+
+  public static SimpleEntry<Integer, String> valorde(SimpleEntry<Integer, String> id){
+    SimpleEntry<Integer, String> r = null;
+    if(id.getKey()==3){
+      if(constantes.containsKey(id.getValue()))
+        r = ((SimpleEntry<Integer, String>) constantes.get(id.getValue()));
+      else if(variables.containsKey(id.getValue()))
+        r = ((SimpleEntry<Integer, String>) variables.get(id.getValue()));
+    } else
+      r = id;
+    return r;
+  }
+:}
+
+terminal String IDENT;
+terminal SimpleEntry<Integer, String> NUM, STR;
+terminal COMENT, IMPORTS, MAIN, CONST, COMA, PC, IGUAL, PRINT, MAS,
+         MENOS, POR, DIV, MOD, AP, CP, AC, CC, EQ, NE, MENOR, MAYOR,
+         MENORIG, MAYORIG, TRUE, FALSE, STRING, WHILE, VAR, FOR, PRINTLN,
+         PRINTF, DPIG, BOOL, INT, PACKAGE, FUNC, MAINE, COMENTE, IDENTE;
+
+non terminal String st, lc, ls, s, el, in, se, la;
+non terminal SimpleEntry<Integer, String> v, op;
+non terminal ArrayList<SimpleEntry<Integer, String>> lv, as;
+
+precedence left INT, STRING, BOOL;
+precedence left EQ, NE, MENOR, MENORIG, MAYOR, MAYORIG;
+precedence left IGUAL;
+precedence left NUM, STR, COMENT;
+precedence left IDENT, IDENTE;
+precedence left TRUE, FALSE;
+precedence left MAS, MENOS;
+precedence left POR, DIV, MOD;
+precedence left AP, CP;
+
+start with st;
+
+st ::= in AC ls:ls CC  {: if(ls!=null && !err) GoPL.out.print(ls + "\n"); :}
+;
+
+lc ::= CONST lv:li IGUAL lv:lv el
+{:
+int u = 0;
+for(SimpleEntry<Integer, String> i:li){
+  if (i.getKey() == 3){
+    SimpleEntry<Integer, String> v = lv.get(u);
+  if(v.getKey() != 3)  constantes.put(i.getValue(), v);
+  }
+}
+:}  lc
+|
+;
+
+lv ::= v:v COMA lv:lv  {: if(!err){
+                            ArrayList<SimpleEntry<Integer, String>> r = new ArrayList<SimpleEntry<Integer, String>>();
+                            r.add(v);
+                            r.addAll(lv);
+                            RESULT = r; 
+                          }
+                       :}
+| v:v                  {: if(!err){
+                            ArrayList<SimpleEntry<Integer, String>> r = new ArrayList<SimpleEntry<Integer, String>>();
+                            r.add(v);
+                            RESULT = r;
+                          }
+                       :}
+| INT                  {: GoPL.out.println("ERROR"); err=true;  :}
+| STRING               {: GoPL.out.println("ERROR"); err=true;  :}
+| BOOL                 {: GoPL.out.println("ERROR"); err=true;  :}
+| INT COMA lv:lv       {: GoPL.out.println("ERROR"); err=true;  :}
+| STRING COMA lv:lv    {: GoPL.out.println("ERROR"); err=true;  :}
+| BOOL COMA lv:lv      {: GoPL.out.println("ERROR"); err=true;  :}
+;
+
+ls ::= ls:ls s:s  {: RESULT = ls!=null ? (s!=null ? ls + s : ls) : (s!=null ?  s : ""); :}
+|
+;
+
+s ::= PRINT AP lv:lv CP el  {:if(!err){
+                                String r = "";
+                                for(SimpleEntry<Integer, String> v:lv){
+                                  r += valorde(v).getValue();
+                                  r += " ";
+                                }
+                                RESULT = r.substring(0, r.length()-1);
+                              }
+                            :}
+| PRINTLN AP lv:lv CP el  {:if(!err){
+                            String r = "";
+                            for(SimpleEntry<Integer, String> v:lv){
+                              r += valorde(v).getValue();
+                              r += " ";
+                            }
+                            RESULT = r.substring(0, r.length()-1) + "\n";
+                          }
+                        :}
+| PRINTF AP STR:s COMA lv:lv CP el
+                          {:
+                            if(!err){
+                              String st = s.getValue();
+                              int idxv = st.indexOf("%v");
+                              int idxT = st.indexOf("%T");
+                              int i = 0;
+                              while(idxv > -1 || idxT > -1){
+                                if(idxv > -1 && idxT > -1){
+                                  if(idxv<idxT){
+                                    st = st.substring(0, idxv) + valorde(lv.get(i)).getValue() + st.substring(idxv+2);
+                                  } else{
+                                    String tipo = "";
+                                    if(valorde(lv.get(i)).getKey()==0) tipo = "int";
+                                    else if(valorde(lv.get(i)).getKey()==1) tipo = "string";
+                                    else if(valorde(lv.get(i)).getKey()==2) tipo = "bool";
+                                    st = st.substring(0, idxT) + tipo + st.substring(idxT+2);
+                                  }
+                                } else if(idxv > -1){
+                                  st = st.substring(0, idxv) + lv.get(i).getValue() + st.substring(idxv+2);
+                                } else{
+                                  String tipo = "";
+                                  if(valorde(lv.get(i)).getKey()==0) tipo = "int";
+                                  else if(valorde(lv.get(i)).getKey()==1) tipo = "string";
+                                  else if(valorde(lv.get(i)).getKey()==2) tipo = "bool";
+                                  st = st.substring(0, idxT) + tipo + st.substring(idxT+2);
+                                }
+
+                                idxv = st.indexOf("%v");
+                                idxT = st.indexOf("%T");
+                                i++;
+                              }
+                              RESULT = st;
+                            }
+                          :}
+| VAR lv:lv INT as:as el  {:if(!err){
+                                if(as==null){
+                                  for(SimpleEntry<Integer, String> v : lv){
+                                    if(v.getKey() == 3){
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(0, "0"));
+                                    }
+                                  }
+                                } else{
+                                  if(lv.size() == as.size()){
+                                    for(int i = 0; i < lv.size() ; i++){
+                                      SimpleEntry<Integer, String> v = lv.get(i);
+                                      SimpleEntry<Integer, String> a = as.get(i);
+                                      if(a.getKey()==0)
+                                        variables.put(v.getValue(), new SimpleEntry<Integer, String>(a.getKey(), a.getValue()));
+                                      else{
+                                        GoPL.out.println("ERROR");
+                                        err = true;
+                                        break;
+                                      }
+                                    }
+                                  } else{
+                                    GoPL.out.println("ERROR");
+                                    err=true;
+                                  }
+                                }
+                              }
+                            :} 
+| VAR lv:lv STRING el as:as {:if(!err){
+                                if(as==null){
+                                  for(SimpleEntry<Integer, String> v : lv){
+                                    if(v.getKey() == 3){
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(1, ""));
+                                    }
+                                  }
+                                } else{
+                                  if(lv.size() == as.size()){
+                                    for(int i = 0; i < lv.size() ; i++){
+                                      SimpleEntry<Integer, String> v = lv.get(i);
+                                      SimpleEntry<Integer, String> a = as.get(i);
+                                      if(a.getKey()==1)
+                                        variables.put(v.getValue(), new SimpleEntry<Integer, String>(a.getKey(), a.getValue()));
+                                      else{
+                                        GoPL.out.println("ERROR");
+                                        err = true;
+                                        break;
+                                      }
+                                    }
+                                  } else{
+                                    GoPL.out.println("ERROR");
+                                    err=true;
+                                  }
+                                }
+                              }
+                            :} 
+| VAR lv:lv BOOL el as:as   {:if(!err){
+                                if(as==null){
+                                  for(SimpleEntry<Integer, String> v : lv){
+                                    if(v.getKey() == 3){
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(2, "false"));
+                                    }
+                                  }
+                                } else{
+                                  if(lv.size() == as.size()){
+                                    for(int i = 0; i < lv.size() ; i++){
+                                      SimpleEntry<Integer, String> v = lv.get(i);
+                                      SimpleEntry<Integer, String> a = as.get(i);
+                                      if(a.getKey()==2)
+                                        variables.put(v.getValue(), new SimpleEntry<Integer, String>(a.getKey(), a.getValue()));
+                                      else{
+                                        GoPL.out.println("ERROR");
+                                        err = true;
+                                        break;
+                                      }
+                                    }
+                                  } else{
+                                    GoPL.out.println("ERROR");
+                                    err=true;
+                                  }
+                                }
+                              }
+                            :}
+| VAR lv:lv IGUAL lv:as el  {:if(!err){
+                                if(as==null){
+                                  for(SimpleEntry<Integer, String> v : lv){
+                                    if(v.getKey() == 3){
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(0, "0"));
+                                    }
+                                  }
+                                } else{
+                                  if(lv.size() == as.size()){
+                                    for(int i = 0; i < lv.size() ; i++){
+                                      SimpleEntry<Integer, String> v = lv.get(i);
+                                      SimpleEntry<Integer, String> a = as.get(i);
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(a.getKey(), a.getValue()));
+                                    }
+                                  } else{
+                                    GoPL.out.println("ERROR");
+                                    err=true;
+                                  }
+                                }
+                              }
+                            :}
+| lv:lv DPIG lv:as el       {:if(!err){
+                                if(as==null){
+                                  for(SimpleEntry<Integer, String> v : lv){
+                                    if(v.getKey() == 3){
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(0, "0"));
+                                    }
+                                  }
+                                } else{
+                                  if(lv.size() == as.size()){
+                                    for(int i = 0; i < lv.size() ; i++){
+                                      SimpleEntry<Integer, String> v = lv.get(i);
+                                      SimpleEntry<Integer, String> a = as.get(i);
+                                      variables.put(v.getValue(), new SimpleEntry<Integer, String>(a.getKey(), a.getValue()));
+                                    }
+                                  } else{
+                                    GoPL.out.println("ERROR");
+                                    err=true;
+                                  }
+                                }
+                              }
+                            :}
+| FOR AP IDENT:i DPIG v:v   {:  if(v.getKey == 0) variables.put(i, v);  :}
+ DP op:op DP IDENT:i2 MAS MAS CP AC
+| COMENT
+| se
+;
+
+op ::= v:n1 MAS v:n2  {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(0, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) + Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MENOS v:n2     {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(0, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) - Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 POR v:n2       {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(0, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) * Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 DIV v:n2       {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(0, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) / Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MOD v:n2       {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(0, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) % Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 EQ v:n2        {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if((n1.getKey() == 0) && n2.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(2,
+                        String.valueOf(Integer.parseInt(n1.getValue()) == Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 NE v:n2        {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 2 && n1.getKey() == 2)
+                        RESULT = new SimpleEntry<Integer, String>(2, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) != Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MENOR v:n2     {:n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n1.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(2, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) < Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MENORIG v:n2   {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n1.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(2, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) <= Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MAYOR v:n2     {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n1.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(2, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) > Integer.parseInt(n2.getValue())));
+                      :}
+| v:n1 MAYORIG v:n2   {:
+                        n1 = valorde(n1); n2 = valorde(n2);
+                        if(n1.getKey() == 0 && n1.getKey() == 0)
+                        RESULT = new SimpleEntry<Integer, String>(2, 
+                        String.valueOf(Integer.parseInt(n1.getValue()) >= Integer.parseInt(n2.getValue())));
+                      :}
+| AP v:n CP           {: RESULT = n; :}
+;
+
+v ::= NUM:n {: RESULT = n; :}
+| STR:s     {: RESULT = s; :}
+| TRUE      {: RESULT = new SimpleEntry<Integer, String>(2, "true"); :}
+| FALSE     {: RESULT = new SimpleEntry<Integer, String>(2, "false"); :}
+| op:o      {: RESULT = o; :}
+| IDENT:i   {: RESULT = new SimpleEntry<Integer, String>(3, i); :}
+| IDENTE    {: if(!err) GoPL.out.println("ERROR");  err = true; :}
+;
+
+in ::= PACKAGE IMPORTS lc FUNC MAIN
+| PACKAGE IMPORTS lc MAIN           {: 
+                                        GoPL.out.println("ERROR\n(en función main)\n" +
+                                        "// no es preciso\n// identificar el tipo");
+                                        err = true; 
+                                    :}
+| PACKAGE IMPORTS lc FUNC MAINE     {: 
+                                        GoPL.out.println("ERROR\n(en función main)\n" +
+                                        "// no es preciso\n// identificar el tipo");
+                                        err = true; :}
+;
+
+se ::= COMENTE          {: 
+                          GoPL.out.println("ERROR\n(comentario mal formado)\n" +
+                          "// no es preciso\n// identificar el tipo");
+                          err = true;
+                        :}
+| PRINT AP lv:lv COMENT {: 
+                          GoPL.out.println("ERROR\n(comentario mal formado)\n" +
+                          "// no es preciso\n// identificar el tipo");
+                          err = true;
+                        :}
+| VAR lv el             {: if(!err) GoPL.out.println("ERROR"); err = true; :}
+| VAR la el             {: if(!err) GoPL.out.println("ERROR"); err = true; :}
+| lv INT el             {: if(!err) GoPL.out.println("ERROR"); err = true; :}
+| lv STRING el          {: if(!err) GoPL.out.println("ERROR"); err = true; :}
+| lv BOOL el            {: if(!err) GoPL.out.println("ERROR"); err = true; :}
+;
+
+as ::= IGUAL lv:lv {: RESULT = lv; :}
+|
+;
+
+la ::= v IGUAL v COMA la
+| v IGUAL v COMA v IGUAL v
+;
+
+el ::= PC
+|
+;
