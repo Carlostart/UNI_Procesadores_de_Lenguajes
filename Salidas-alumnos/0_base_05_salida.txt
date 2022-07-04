@@ -1,5 +1,0 @@
-6
-Error: objeto 'pr' no encontrado
-9
-Error: unexpected symbol in:
-9

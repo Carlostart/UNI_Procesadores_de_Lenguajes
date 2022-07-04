@@ -1,5 +1,0 @@
-Error in var - 2 = 2 : no se pudo encontrar la función "-<-"
-Error: unexpected input in "3_"
-Error: unexpected symbol in ".5var"
-1
-4
