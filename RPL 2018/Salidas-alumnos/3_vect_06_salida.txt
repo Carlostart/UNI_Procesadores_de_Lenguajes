@@ -1,0 +1,3 @@
+Error: longitud de objetos diferentes
+4 64
+Error: unexpected numeric constant in "d<-c1::3"

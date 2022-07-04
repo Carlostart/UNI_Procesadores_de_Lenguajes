@@ -1,0 +1,2 @@
+Error in print.default() : 
+  el argumento "x" está ausente, sin valor por omisión

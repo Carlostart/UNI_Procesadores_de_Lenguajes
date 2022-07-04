@@ -1,0 +1,2 @@
+Error: inesperado '*' in "y = 3-*"
+-12

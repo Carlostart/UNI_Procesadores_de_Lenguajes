@@ -1,0 +1,5 @@
+5
+7
+7
+Error: inesperado ';' in "print (2+5;"
+6
