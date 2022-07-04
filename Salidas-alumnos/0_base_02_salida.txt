@@ -1,0 +1,4 @@
+2
+Error: inesperado ';' in "2 + ;"
+7
+Error: unexpected numeric constant in "2 + 3 4"

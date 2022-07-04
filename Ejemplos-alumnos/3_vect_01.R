@@ -1,0 +1,6 @@
+a<-c(1,2,3)
+b<-c(4,5)
+c<-c(6,7)
+print(a)
+print(b)
+print(c)
