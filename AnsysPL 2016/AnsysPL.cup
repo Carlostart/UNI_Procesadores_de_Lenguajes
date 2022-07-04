@@ -1,0 +1,140 @@
+import java_cup.runtime.*;
+import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.AbstractMap.SimpleEntry;
+
+
+parser code{:
+:}
+
+action code{:
+ Hashtable<String, String> variables = new Hashtable<>();
+ HashMap constantes = new HashMap<String, SimpleEntry<Integer, String>>();
+
+ String valorminimo = "4.9E-324";
+ Boolean cmp = true;;
+:}
+
+terminal String IDENT, NUM, STR, IDENTR, IDENTB, IDENTC;
+terminal IDENTL, IDENTN, COMENT, SET, STATUS, ABS, SIGN, EQ, NE, LT,
+         GT, LE, GE, ABLT, ABGT, IF, ELSEIF, THEN, ELSE, ENDIF, COMA, IGUAL, MAS,
+         MENOS, POR, DIV, EXP, AP, CP, STRL;
+
+non terminal String st, ls, s, ie, op, v, ei;
+
+precedence left NUM, STR, STRL, SET, COMENT, STATUS, IF, ELSEIF, ELSE, ENDIF;
+precedence left IDENT, IDENTB, IDENTC, IDENTL, IDENTN, IDENTR;
+precedence left MAS, MENOS;
+precedence left POR, DIV;
+precedence left EXP;
+precedence left ABS, SIGN;
+precedence left AP, CP;
+
+start with st;
+
+st ::= ls:l                            {: if(l!=null) AnsysPL.out.print(l); :}
+;
+ls ::= s:s ls:l                        {: RESULT = l!=null ? (s!=null ? (s + l) : l) : (s!=null ? s : null); :}
+  | IF COMA v:n1 COMA EQ COMA v:n2     {: cmp = (Double.parseDouble(n1) == Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA NE COMA v:n2     {: cmp = (Double.parseDouble(n1) != Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA LT COMA v:n2     {: cmp = (Double.parseDouble(n1) < Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA GT COMA v:n2     {: cmp = (Double.parseDouble(n1) > Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA LE COMA v:n2     {: cmp = (Double.parseDouble(n1) <= Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA GE COMA v:n2     {: cmp = (Double.parseDouble(n1) >= Double.parseDouble(n2)); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA ABLT COMA v:n2   {: cmp = (Math.abs(Double.parseDouble(n1)) < Math.abs(Double.parseDouble(n2))); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  | IF COMA v:n1 COMA ABGT COMA v:n2   {: cmp = (Math.abs(Double.parseDouble(n1)) > Math.abs(Double.parseDouble(n2))); :}
+    COMA THEN ls:l                     {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;} else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  |                                    {: RESULT = null; :}
+;
+s ::= SET COMA ie:i COMA v:n           {: if(i!=null && cmp) variables.put(i, n); :}
+  | ie:i IGUAL v:n                     {: if(i!=null && cmp) variables.put(i, n); :}
+  | ie:i IGUAL                         {: if(cmp) variables.remove(i); :}
+  | op IGUAL v                         {: AnsysPL.out.println("ERROR: NOMBRE PARÁMETRO"); :}
+  | op IGUAL                           {: AnsysPL.out.println("ERROR: NOMBRE PARÁMETRO"); :}
+  | COMENT
+  | STATUS                             {: if(cmp){
+                                            String r = "PARAMETER STATUS\n( " + variables.size() + " PARAMETERS DEFINED)\nNAME VALUE TYPE\n";
+                                            for(String k : variables.keySet()) {
+                                              String v = variables.get(k);
+                                              if(v.charAt(0)=='\'') r += k + " " + v.substring(1, v.length()-1) + " CHARACTER\n";
+                                              else                  r += k + " " + v + " SCALAR\n";
+                                            }
+                                            RESULT = r;
+                                          }
+                                       :}
+
+  | STATUS COMA ie:k                   {: if(k!=null && cmp){
+                                            if (!variables.containsKey(k)) variables.put(k, valorminimo);
+                                            String r = "PARAMETER STATUS\n( " + variables.size() + " PARAMETERS DEFINED)\nNAME VALUE TYPE\n";
+                                            if (!variables.containsKey(k)) variables.put(k, valorminimo);
+                                            String v = variables.get(k);
+                                            if(v.charAt(0)=='\'') r += k + " " + v.substring(1, v.length()-1) + " CHARACTER\n";
+                                            else                  r += k + " " + v + " SCALAR\n";
+                                            RESULT = r;
+                                          }
+                                       :}
+;
+ie ::= IDENT:i                         {: RESULT = i; :}
+  | IDENTL                             {: AnsysPL.out.println("ERROR: NOMBRE PARÁMETRO LARGO"); :}
+  | IDENTC:i                           {: AnsysPL.out.println("ERROR: NOMBRE PARÁMETRO"); :}
+  | IDENTN                             {: AnsysPL.out.println("ERROR: NOMBRE PARÁMETRO"); :}
+  | IDENTB:i                           {: AnsysPL.out.println("AVISO: NOMBRE PARÁMETRO");  RESULT = i; :}
+  | IDENTR:i                           {: AnsysPL.out.println("AVISO: NOMBRE PARÁMETRO");  RESULT = i; :}
+;
+op ::= ABS AP v:v CP                   {: if(v!=null)  {
+                                            if(v.charAt(0)=='-')
+                                              RESULT =  v.substring(1,v.length());
+                                            else  RESULT = v;
+                                      }
+                                       :}
+  | SIGN AP v:v1 COMA v:v2 CP          {: if(v1!=null || v2!=null)  {
+                                            if(v2.charAt(0)=='-')
+                                              RESULT = (v1.charAt(0)=='-') ? v1 :  "-" + v1;
+                                            else
+                                              RESULT = (v1.charAt(0)=='-') ? v1.substring(1,v1.length()) : v1;
+                                            }
+                                       :}
+  | v:n1 MAS v:n2                      {: RESULT = Double.toString(Double.parseDouble(n1) + Double.parseDouble(n2)); :}
+  | v:n1 MENOS v:n2                    {: RESULT = Double.toString(Double.parseDouble(n1) - Double.parseDouble(n2)); :}
+  | v:n1 POR v:n2                      {: RESULT = Double.toString(Double.parseDouble(n1) * Double.parseDouble(n2)); :}
+  | v:n1 DIV v:n2                      {: RESULT = Double.toString(Double.parseDouble(n1) / Double.parseDouble(n2)); :}
+  | v:n1 EXP v:n2                      {: RESULT = Double.toString(Math.pow(Double.parseDouble(n1), Double.parseDouble(n2))); :}
+  | AP v:n CP                          {: RESULT = n; :}
+  ;
+
+  v ::= NUM:n                          {: RESULT = n; :}
+    | STR:s                            {: RESULT = s; :}
+    | op:o                             {: RESULT = o; :}
+    | STRL                             {: AnsysPL.out.println("ERROR: TEXTO LARGO"); :}
+    | ie:i                             {: if(i!=null){
+                                            if(variables.containsKey(i))
+                                              RESULT = variables.get(i);
+                                            else
+                                              RESULT = valorminimo;
+                                          }
+                                       :}
+  ;
+ei ::= ENDIF                           {: RESULT = ""; :}
+  | ELSE ls:l ENDIF                    {: RESULT = l!=null && cmp ? l +"\n" : ""; cmp = true;:}
+  | ELSEIF COMA v:n1 COMA LT COMA v:n2 {: cmp = cmp ? (Double.parseDouble(n1) < Double.parseDouble(n2)) : false; :}
+    ls:l                               {: if(cmp){  RESULT = l!=null ? l : "";  cmp=false;}
+                                          else  cmp=true; :}
+    ei:e ls:l2                         {: RESULT = e!=null ? (l2!=null ? e + l2 : e) : (l2!=null ? l2 : ""); :}
+  |                                    {: AnsysPL.out.println("ERROR: SENTENCIA *IF MAL CONSTRUIDA"); :}
+;
